@@ -1,0 +1,319 @@
+<!doctype html>
+<html><head><title>Barcode Generator</title>
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+<meta charset="utf-8" />
+
+<link rel="stylesheet" type="text/css" href="lib/demo.css">
+<link rel="stylesheet" type="text/css" href="lib/jquery-ui.min.css">
+<script type="text/javascript" src="bwipp.js"></script>
+<script type="text/javascript" src="bwipjs.js"></script>
+<script type="text/javascript" src="lib/jquery.js"></script>
+<script type="text/javascript" src="lib/jquery-ui.min.js"></script>
+<script type="text/javascript" src="lib/xhr-fonts.js"></script>
+<script type="text/javascript" src="lib/bitmap.js"></script>
+<script type="text/javascript" src="lib/symdesc.js"></script>
+<script type="text/javascript" src="lib/canvas-toblob.js"></script>
+<script type="text/javascript" src="lib/filesaver.js"></script>
+<script type="text/javascript">
+$(document).ready(function() {
+
+	var sourceXml = '<xml><sc dn="4" t="20160205" ft="WP10SS" id="444477110313121339932" /><pa pc="NG7 6BL" a="257 Denman Street,30 The Avenuelle,Leediol" o="31" x="2" b="19850101" h="4000274652" s="Mr" f="Martin" m="" l="Kiraly" /><pb pc="PR26 7NQ" a="Cegedim House,1 Place,Test,Leyland,Lancashire" pi="F81026" n="CARADOC SURGERY" d="SURGERY CARADOC" i="G7120420"/><dd d="Aspirin 300mg tablets" sq="11" u="428673006" q="11 tablet" dm="329525004" do="TO BE TAKEN AS DIRECTED BY THE PRESCRIBER"/><dd d="Warfarin 1mg tablets" sq="12" u="428673006" q="12 tablet" dm="319733000" do="TO BE TAKEN AS DIRECTED BY THE PRESCRIBER"/><dd d="Paracetamol 500mg caplets" sq="32" u="428673006" q="32 tablet" dm="9802911000001108" do="Take two daily for next 3 to 4 weeks"/><dd d="Prograf 5mg capsules" sq="27" u="428673006" q="27 tablet" dm="752211000001104" do="To be taken as directed by the prescriber"/></xml>';
+
+	var sourceData = $.parseXML(sourceXml);
+
+	var today = new Date();
+	var dd = today.getDate();
+	var mm = today.getMonth() + 1; //January is 0!
+	var timestamp = Date.now();
+
+	var yyyy = today.getFullYear();
+	if (dd < 10) {
+		dd = '0' + dd;
+	}
+	if (mm < 10) {
+		mm = '0' + mm;
+	}
+
+	sourceData.getElementsByTagName('sc')[0].setAttribute('t', yyyy + '' + mm + '' + dd)
+	sourceData.getElementsByTagName('sc')[0].setAttribute('id', "44447711" + timestamp)
+
+	var postCodes = ["NG7 6BL",
+		"NG1 1AL",
+		"NG8 4EQ",
+		"NG7 6NZ",
+		"NG7 5WB",
+		"NG5 8TW",
+		"NG3 6PY",
+		"NG8 9HE",
+		"NG5 4HA",
+		"NG3 6JL",
+		"NG6 9FT",
+		"NG6 9GQ",
+		"NG6 0PQ"];
+	var postCode = postCodes[Math.floor(Math.random() * postCodes.length)];
+	var nhs = timestamp.toString().substring(3);
+
+	$.get('https://randomuser.me/api/?inc=name,dob', function (response) {
+		var uData = response.results[0];
+		dob = uData.dob.date;
+		var userdob = new Date(dob);
+		var udd = userdob.getDate();
+		var umm = userdob.getMonth() + 1; //January is 0!
+		var uyyyy = userdob.getFullYear();
+
+		sourceData.getElementsByTagName('pa')[0].setAttribute('s', uData.name.title)
+		sourceData.getElementsByTagName('pa')[0].setAttribute('b', uyyyy + '' + umm + '' + udd)
+		sourceData.getElementsByTagName('pa')[0].setAttribute('h', nhs)
+		sourceData.getElementsByTagName('pa')[0].setAttribute('pc', postCode)
+		sourceData.getElementsByTagName('pa')[0].setAttribute('f', uData.name.first)
+		sourceData.getElementsByTagName('pa')[0].setAttribute('l', uData.name.last)
+
+		$('#symtext').val(new XMLSerializer().serializeToString(sourceData.documentElement));
+	}).fail(function () {
+		window.alert('User fetch failed. Please check the network!');
+	});
+	
+	
+	$('.saveas').css('visibility', 'hidden');
+	$('#proof-img').css('visibility', 'hidden');
+	$('#stats').text('');
+	var canvas = document.getElementById('canvas');
+	canvas.width = canvas.width;
+	
+	$('#render').button().click(render);
+	$('.saveas').css('visibility', 'hidden');
+
+	if (location.search.indexOf('proofs=1') != -1) { 
+		// Show the images from BWIPP with Ghostscript
+		var img = document.createElement('img');
+		img.id					= 'proof-img';
+		img.style.visibility 	= 'hidden';
+		img.style.position		= 'absolute';
+		img.style.top			= '0px';
+		img.style.left			= '0px';
+		$('#proof').append(img);
+	}
+
+	// Allow Enter to render
+	$('#params').keypress(function(ev) {
+		if (ev.which == 13) {
+			render();
+			ev.stopPropagation();
+			ev.preventDefault();
+			return false;
+		}
+	});
+});
+
+function render() {
+	var sourceXml = '<xml><sc dn="4" t="20160205" ft="WP10SS" id="444477110313121339932" /><pa pc="NG7 6BL" a="257 Denman Street,30 The Avenuelle,Leediol" o="31" x="2" b="19850101" h="4000274652" s="Mr" f="Martin" m="" l="Kiraly" /><pb pc="PR26 7NQ" a="Cegedim House,1 Place,Test,Leyland,Lancashire" pi="F81026" n="CARADOC SURGERY" d="SURGERY CARADOC" i="G7120420"/><dd d="Aspirin 300mg tablets" sq="11" u="428673006" q="11 tablet" dm="329525004" do="TO BE TAKEN AS DIRECTED BY THE PRESCRIBER"/><dd d="Warfarin 1mg tablets" sq="12" u="428673006" q="12 tablet" dm="319733000" do="TO BE TAKEN AS DIRECTED BY THE PRESCRIBER"/><dd d="Paracetamol 500mg caplets" sq="32" u="428673006" q="32 tablet" dm="9802911000001108" do="Take two daily for next 3 to 4 weeks"/><dd d="Prograf 5mg capsules" sq="27" u="428673006" q="27 tablet" dm="752211000001104" do="To be taken as directed by the prescriber"/></xml>';
+
+	var sourceData = $.parseXML(sourceXml);
+
+	var today = new Date();
+	var dd = today.getDate();
+	var mm = today.getMonth() + 1; //January is 0!
+	var timestamp = Date.now();
+
+	var yyyy = today.getFullYear();
+	if (dd < 10) {
+		dd = '0' + dd;
+	}
+	if (mm < 10) {
+		mm = '0' + mm;
+	}
+
+	sourceData.getElementsByTagName('sc')[0].setAttribute('t', yyyy + '' + mm + '' + dd)
+	sourceData.getElementsByTagName('sc')[0].setAttribute('id', "44447711" + timestamp)
+
+	var postCodes = ["NG7 6BL",
+		"NG1 1AL",
+		"NG8 4EQ",
+		"NG7 6NZ",
+		"NG7 5WB",
+		"NG5 8TW",
+		"NG3 6PY",
+		"NG8 9HE",
+		"NG5 4HA",
+		"NG3 6JL",
+		"NG6 9FT",
+		"NG6 9GQ",
+		"NG6 0PQ"];
+	var postCode = postCodes[Math.floor(Math.random() * postCodes.length)];
+	var nhs = timestamp.toString().substring(3);
+
+	$.get('https://randomuser.me/api/?inc=name,dob', function (response) {
+		var uData = response.results[0];
+		dob = uData.dob.date;
+		var userdob = new Date(dob);
+		var udd = userdob.getDate();
+		var umm = userdob.getMonth() + 1; //January is 0!
+		var uyyyy = userdob.getFullYear();
+
+		sourceData.getElementsByTagName('pa')[0].setAttribute('s', uData.name.title)
+		sourceData.getElementsByTagName('pa')[0].setAttribute('b', uyyyy + '' + umm + '' + udd)
+		sourceData.getElementsByTagName('pa')[0].setAttribute('h', nhs)
+		sourceData.getElementsByTagName('pa')[0].setAttribute('pc', postCode)
+		sourceData.getElementsByTagName('pa')[0].setAttribute('f', uData.name.first)
+		sourceData.getElementsByTagName('pa')[0].setAttribute('l', uData.name.last)
+
+		$('#symtext').val(new XMLSerializer().serializeToString(sourceData.documentElement));
+	}).fail(function () {
+		window.alert('User fetch failed. Please check the network!');
+	});
+
+	var elt  = symdesc['datamatrix'];
+	var text = $('#symtext').val(); //.replace(/^\s+/,'').replace(/\s+$/,'');
+	var opts = '';//$('#symopts').val().replace(/^\s+/,'').replace(/\s+$/,'');
+	var rot  = 'N';
+
+	// Anti-aliased or monochrome fonts and scaling factors.
+	var monochrome = false;//document.getElementById('fontMono').checked;
+	var scaleX = 1;
+	var scaleY = 1;
+
+	var bw = new BWIPJS(bwipjs_fonts, monochrome);
+
+	// Clear the page
+	$('#output').text('');
+	$('#stats').text('');
+	$('#proof-img').css('visibility', 'hidden');
+	$('.saveas').css('visibility', 'hidden');
+
+	var canvas = document.getElementById('canvas');
+	canvas.height = 1;
+	canvas.width  = 1;
+	canvas.style.visibility = 'hidden';
+
+	// Convert the options to a dictionary object, so we can pass alttext with
+	// spaces.
+	var tmp = opts.split(' '); 
+	opts = {};
+	for (var i = 0; i < tmp.length; i++) {
+		if (!tmp[i]) {
+			continue;
+		}
+		var eq = tmp[i].indexOf('=');
+		if (eq == -1) {
+			opts[tmp[i]] = true;
+		} else {
+			opts[tmp[i].substr(0, eq)] = tmp[i].substr(eq+1);
+		}
+	}
+
+	// We use mm rather than inches for height - except pharmacode2 height
+	// which is expected to be in mm
+	if (+opts.height && elt.sym != 'pharmacode2') {
+		opts.height = opts.height / 25.4 || 0.5;
+	}
+	// Likewise, width.
+	if (+opts.width) {
+		opts.width = opts.width / 25.4 || 0;
+	}
+	// BWIPP does not extend the background color into the
+	// human readable text.  Fix that in the bitmap interface.
+	if (opts.backgroundcolor) {
+		bw.bitmap(new Bitmap(canvas, rot, opts.backgroundcolor));
+		delete opts.backgroundcolor;
+	} else {
+		bw.bitmap(new Bitmap(canvas, rot));
+	}
+	
+	// Set the scaling factors
+	bw.scale(scaleX, scaleY);
+
+	// Add optional padding to the image
+	bw.bitmap().pad(+opts.paddingwidth*scaleX || 0,
+					+opts.paddingheight*scaleY || 0);
+
+	var ts0 = Date.now();
+	try {
+		// Call into the BWIPP cross-compiled code.
+		BWIPP()(bw, elt.sym, text, opts);
+
+		// Allow the font manager to demand-load any required fonts
+		// before calling render().
+		var ts1 = Date.now();
+		bwipjs_fonts.loadfonts(function(e) {
+			if (e) {
+				$('#output').text(e.stack || (''+e));
+			} else {
+				show();
+			}
+		});
+	} catch (e) {
+		// Watch for BWIPP generated raiseerror's.
+		var msg = ''+e;
+		if (msg.indexOf("bwipp.") >= 0) {
+			$('#output').text(msg);
+		} else if (e.stack) {
+			$('#output').text(e.stack);
+		} else {
+			$('#output').text(e);
+		}
+		return;
+	}
+
+	// Draw the barcode to the canvas
+	function show() {
+		bw.render();
+		var ts2 = Date.now();
+
+		canvas.style.visibility = 'visible';
+		setURL();
+		$('#stats').text('Rendered in ' + (ts2-ts0) + ' msecs');
+		$('.saveas').css('visibility', 'visible');
+		saveCanvas.basename = elt.sym + '-' +
+				text.replace(/[^a-zA-Z0-9._]+/g, '-');
+
+		// Show proofs?
+		if (location.search.indexOf('proofs=1') != -1) { 
+			var img = document.getElementById('proof-img');
+			if (img) {
+				img.src = 'proofs/' + elt.sym + '.png';
+				img.style.visibility = 'visible';
+			}
+		}
+	}
+}
+
+function saveCanvas(type, ext) {
+	var canvas = document.getElementById('canvas');
+	canvas.toBlob(function (blob) {
+					  saveAs(blob, saveCanvas.basename + ext);
+				  }, type, 1);
+}
+function setURL() {}
+</script>
+</head><body>
+<div id="header">
+	<div id="bwipjs">Barcode Generator</div>
+</div>
+<div id="params">
+<table border=0 cellpading=0 cellspacing=0><tr>
+<td style="vertical-align:top">
+	<table border=0 cellpading=0 cellspacing=0>
+	<tr><th>XML:<td>
+		<!-- <input id="symtext" type="text" style="width:63ex"> -->
+		<textarea id="symtext"></textarea>
+	<tr><td><td>
+		<a class="saveas" href="javascript:saveCanvas('image/jpeg','.jpg')">Save As JPEG</a>
+		&nbsp;&nbsp;
+		<br>
+		<div id="stats"></div>
+	</table>
+<td style="padding-left:10mm;vertical-align:top">
+	<table border=0 cellpading=0 cellspacing=5>
+	
+	<tr><td><td><button id="render">Show Barcode</button>
+	</table>
+<tr><td><br>
+</table>
+</div>
+<div id="content">
+<canvas id="canvas" width=1 height=1 style="border:1px solid #fff;visibility:hidden"></canvas>
+<div id="proof" style="position:relative;border:1px solid #fff"></div>
+<div id="output" style="white-space:pre"></div>
+</div>
+</body>
+</html>

@@ -8,6 +8,7 @@
 
 	<link rel="stylesheet" type="text/css" href="lib/demo.css">
 	<!-- <link rel="stylesheet" type="text/css" href="lib/jquery-ui.min.css"> -->
+	<script type="text/javascript" src="lib/lodash.min.js"></script>
 	<script type="text/javascript" src="bwipp.js"></script>
 	<script type="text/javascript" src="bwipjs.js"></script>
 	<script type="text/javascript" src="lib/jquery.js"></script>
@@ -17,6 +18,7 @@
 	<script type="text/javascript" src="lib/symdesc.js"></script>
 	<script type="text/javascript" src="lib/canvas-toblob.js"></script>
 	<script type="text/javascript" src="lib/filesaver.js"></script>
+	
 	<script type="text/javascript">
 		$(document).ready(function () {
 			generateData();
@@ -52,7 +54,22 @@
 		});
 
 		function generateData(isNi) {
-			var sourceXml = '<xml><sc dn="4" t="20160205" ft="WP10SS" id="444477110313121339932" /><pa pc="NG7 6BL" a="257 Denman Street,30 The Avenuelle,Leediol" o="31" x="2" b="19850101" h="4000274652" s="Mr" f="Martin" m="" l="Kiraly" /><pb pc="PR26 7NQ" a="Cegedim House,1 Place,Test,Leyland,Lancashire" pi="F81026" n="CARADOC SURGERY" d="SURGERY CARADOC" i="G7120420"/><dd d="Aspirin 300mg tablets" sq="11" u="428673006" q="11 tablet" dm="329525004" do="TO BE TAKEN AS DIRECTED BY THE PRESCRIBER"/><dd d="Warfarin 1mg tablets" sq="12" u="428673006" q="12 tablet" dm="319733000" do="TO BE TAKEN AS DIRECTED BY THE PRESCRIBER"/><dd d="Paracetamol 500mg caplets" sq="32" u="428673006" q="32 tablet" dm="9802911000001108" do="Take two daily for next 3 to 4 weeks"/><dd d="Prograf 5mg capsules" sq="27" u="428673006" q="27 tablet" dm="752211000001104" do="To be taken as directed by the prescriber"/></xml>';
+			var randomTabletCount = _.random(2,5);
+			
+			var tablets = ['<dd d="Methadone 5mg tablets" sq="56" u="428673006" q="56 tablet" dm="322591003" do="TO BE TAKEN AS DIRECTED BY THE PRESCRIBER"/>',
+				'<dd d="Pravastatin 10mg tablets" sq="28" u="428673006" q="28 tablet" dm="320012008" do="TO BE TAKEN AS DIRECTED BY THE PRESCRIBER"/>',
+				'<dd d="Tasmar 100mg tablets" sq="100" u="428673006" q="100 tablet" dm="9061011000001101" do="TO BE TAKEN AS DIRECTED BY THE PRESCRIBER"/>',
+				'<dd d="Amlodipine 10mg tablets" sq="28" u="428673006" q="28 tablet" dm="319284000" do="TO BE TAKEN AS DIRECTED BY THE PRESCRIBER"/>',
+				'<dd d="Simvastatin 10mg tablets" sq="56" u="428673006" q="56 tablet" dm="319996000" do="TO BE TAKEN AS DIRECTED BY THE PRESCRIBER"/>',
+				'<dd d="Simvastatin 80mg tablets" sq="28" u="428673006" q="28 tablet" dm="320006003" do="TO BE TAKEN AS DIRECTED BY THE PRESCRIBER"/>',
+				'<dd d="Paracetamol 125mg suppositories" sq="56" u="428673006" q="56 tablet" dm="322278003" do="TO BE TAKEN AS DIRECTED BY THE PRESCRIBER"/>',
+				'<dd d="Salbutamol 2mg tablets" sq="28" u="428673006" q="28 tablet" dm="320106000" do="TO BE TAKEN AS DIRECTED BY THE PRESCRIBER"/>',
+				'<dd d="Warfarin 5mg tablets" sq="56" u="428673006" q="56 tablet" dm="319735007" do="TO BE TAKEN AS DIRECTED BY THE PRESCRIBER"/>'];
+			
+			var randomTablets = _.sampleSize(tablets, randomTabletCount);
+			randomTablets = randomTablets.join('');
+			//var sourceXml = '<xml><sc dn="4" t="20160205" ft="WP10SS" id="444477110313121339932" /><pa pc="NG7 6BL" a="257 Denman Street,30 The Avenuelle,Leediol" o="31" x="2" b="19850101" h="4000274652" s="Mr" f="Martin" m="" l="Kiraly" /><pb pc="PR26 7NQ" a="Cegedim House,1 Place,Test,Leyland,Lancashire" pi="F81026" n="CARADOC SURGERY" d="SURGERY CARADOC" i="G7120420"/><dd d="Aspirin 300mg tablets" sq="11" u="428673006" q="11 tablet" dm="329525004" do="TO BE TAKEN AS DIRECTED BY THE PRESCRIBER"/><dd d="Warfarin 1mg tablets" sq="12" u="428673006" q="12 tablet" dm="319733000" do="TO BE TAKEN AS DIRECTED BY THE PRESCRIBER"/><dd d="Paracetamol 500mg caplets" sq="32" u="428673006" q="32 tablet" dm="9802911000001108" do="Take two daily for next 3 to 4 weeks"/><dd d="Prograf 5mg capsules" sq="27" u="428673006" q="27 tablet" dm="752211000001104" do="To be taken as directed by the prescriber"/></xml>';
+			var sourceXml = '<xml><sc dn="' + randomTabletCount + '" t="20160205" ft="WP10SS" id="444477110313121339932" /><pa pc="NG7 6BL" a="257 Denman Street,30 The Avenuelle,Leediol" o="31" x="2" b="19850101" h="4000274652" s="Mr" f="Martin" m="" l="Kiraly" /><pb pc="PR26 7NQ" a="Cegedim House,1 Place,Test,Leyland,Lancashire" pi="F81026" n="CARADOC SURGERY" d="SURGERY CARADOC" i="G7120420"/>' + randomTablets +'</xml>';
 			$('.loading').show();
 			var sourceData = $.parseXML(sourceXml);
 
@@ -68,7 +85,7 @@
 			if (mm < 10) {
 				mm = '0' + mm;
 			}
-
+			
 			sourceData.getElementsByTagName('sc')[0].setAttribute('t', yyyy + '' + mm + '' + dd)
 			if (isNi) {
 				sourceData.getElementsByTagName('sc')[0].setAttribute('id', "44447" + timestamp);
@@ -77,6 +94,7 @@
 				sourceData.getElementsByTagName('pa')[0].removeAttribute('o');
 			} else {
 				sourceData.getElementsByTagName('sc')[0].setAttribute('ft', "WP10SS");
+				// sourceData.getElementsByTagName('sc')[0].setAttribute('dn', randomTabletCount);
 				sourceData.getElementsByTagName('sc')[0].setAttribute('id', "44447711" + timestamp);
 			}
 
